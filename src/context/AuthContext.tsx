@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import * as SecureStore from "expo-secure-store";
+import { appStorage } from "@/utils/storage";
 import apiClient from "@/api/client";
 import { TOKEN_KEY, USER_KEY } from "@/constants/Config";
 
@@ -50,8 +50,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const bootstrapAsync = async () => {
       try {
-        const savedToken = await SecureStore.getItemAsync(TOKEN_KEY);
-        const savedUserJson = await SecureStore.getItemAsync(USER_KEY);
+        const savedToken = await appStorage.getItem(TOKEN_KEY);
+        const savedUserJson = await appStorage.getItem(USER_KEY);
 
         if (savedToken) {
           setToken(savedToken);
@@ -62,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           try {
             const { data } = await apiClient.get("/auth/me");
             setUser(data);
-            await SecureStore.setItemAsync(USER_KEY, JSON.stringify(data));
+            await appStorage.setItem(USER_KEY, JSON.stringify(data));
           } catch (err) {
             console.warn("[AuthContext] Token caducado o servidor inalcanzable");
           }
@@ -83,16 +83,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { access_token, user: userData } = response.data;
 
       if (access_token) {
-        await SecureStore.setItemAsync(TOKEN_KEY, access_token);
+        await appStorage.setItem(TOKEN_KEY, access_token);
         setToken(access_token);
 
         if (userData) {
-          await SecureStore.setItemAsync(USER_KEY, JSON.stringify(userData));
+          await appStorage.setItem(USER_KEY, JSON.stringify(userData));
           setUser(userData);
         } else {
           // Obtener datos si el backend no los incluyó en body
           const meRes = await apiClient.get("/auth/me");
-          await SecureStore.setItemAsync(USER_KEY, JSON.stringify(meRes.data));
+          await appStorage.setItem(USER_KEY, JSON.stringify(meRes.data));
           setUser(meRes.data);
         }
         return { success: true };
@@ -110,10 +110,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { access_token, user: userData } = response.data;
 
       if (access_token) {
-        await SecureStore.setItemAsync(TOKEN_KEY, access_token);
+        await appStorage.setItem(TOKEN_KEY, access_token);
         setToken(access_token);
         if (userData) {
-          await SecureStore.setItemAsync(USER_KEY, JSON.stringify(userData));
+          await appStorage.setItem(USER_KEY, JSON.stringify(userData));
           setUser(userData);
         }
       }
@@ -130,15 +130,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { access_token, user: userData } = response.data;
 
       if (access_token) {
-        await SecureStore.setItemAsync(TOKEN_KEY, access_token);
+        await appStorage.setItem(TOKEN_KEY, access_token);
         setToken(access_token);
 
         if (userData) {
-          await SecureStore.setItemAsync(USER_KEY, JSON.stringify(userData));
+          await appStorage.setItem(USER_KEY, JSON.stringify(userData));
           setUser(userData);
         } else {
           const meRes = await apiClient.get("/auth/me");
-          await SecureStore.setItemAsync(USER_KEY, JSON.stringify(meRes.data));
+          await appStorage.setItem(USER_KEY, JSON.stringify(meRes.data));
           setUser(meRes.data);
         }
         return { success: true };
@@ -150,11 +150,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = async () => {
+    const logout = async () => {
     try {
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
-      await SecureStore.deleteItemAsync(USER_KEY);
+      await apiClient.post("/auth/logout").catch(() => {});
     } catch (_) {}
+
+    try {
+      // If native Google Signin is available, sign out of Google session too
+      const { Platform } = require('react-native');
+      if (Platform.OS !== 'web') {
+        const GoogleSigninModule = require('@react-native-google-signin/google-signin');
+        if (GoogleSigninModule?.GoogleSignin) {
+          await GoogleSigninModule.GoogleSignin.signOut().catch(() => {});
+        }
+      }
+    } catch (_) {}
+
+    try {
+      await appStorage.deleteItem(TOKEN_KEY);
+      await appStorage.deleteItem(USER_KEY);
+    } catch (_) {}
+
     setToken(null);
     setUser(null);
   };
@@ -163,7 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { data } = await apiClient.get("/auth/me");
       setUser(data);
-      await SecureStore.setItemAsync(USER_KEY, JSON.stringify(data));
+      await appStorage.setItem(USER_KEY, JSON.stringify(data));
     } catch (e) {
       console.warn("[AuthContext] Error refrescando usuario:", e);
     }

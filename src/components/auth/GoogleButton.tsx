@@ -9,17 +9,28 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
-import * as Haptics from 'expo-haptics';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 
-// Ensure web browser auth completions are resolved
 WebBrowser.maybeCompleteAuthSession();
 
-const GOOGLE_WEB_CLIENT_ID =
+const GOOGLE_CLIENT_ID =
+  process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ||
   '669566577029-8sgd2if3rdbc2udj7v42nrch6i5l6p6p.apps.googleusercontent.com';
+
+// Probar de forma segura si el modulo nativo esta enlazado en el binario
+let NativeGoogleSignin: any = null;
+let nativeStatusCodes: any = null;
+try {
+  const gSignin = require('@react-native-google-signin/google-signin');
+  NativeGoogleSignin = gSignin.GoogleSignin;
+  nativeStatusCodes = gSignin.statusCodes;
+} catch (e) {
+  // En Expo Go o binario sin RNGoogleSignin no crashea
+}
 
 interface GoogleButtonProps {
   text?: string;
@@ -39,53 +50,98 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
   const { loginWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
 
+  // Proporcionamos todos los client IDs para evitar invariantClientId
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    webClientId: GOOGLE_WEB_CLIENT_ID,
+    clientId: GOOGLE_CLIENT_ID,
+    webClientId: GOOGLE_CLIENT_ID,
+    androidClientId: GOOGLE_CLIENT_ID,
+    iosClientId: GOOGLE_CLIENT_ID,
     selectAccount: true,
   });
 
   useEffect(() => {
-    const handleAuthResponse = async () => {
-      if (!response) return;
-
-      if (response.type === 'success') {
-        const idToken =
-          response.params?.id_token || (response as any).authentication?.idToken;
-
-        if (idToken) {
-          try {
-            setLoading(true);
-            const res = await loginWithGoogle(idToken);
-            setLoading(false);
-            if (res.success) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              if (onSuccess) onSuccess();
-            } else {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-              if (onError) onError(res.error || 'Error al autenticar con Google');
-            }
-          } catch (e: any) {
-            setLoading(false);
-            if (onError) onError(e?.message || 'Error en inicio de sesión con Google');
-          }
-        } else {
-          setLoading(false);
-          if (onError) onError('No se recibió la credencial de Google');
-        }
-      } else if (response.type === 'error') {
-        setLoading(false);
-        if (onError) onError(response.error?.message || 'Cancelado o error con Google');
-      } else if (response.type === 'dismiss' || response.type === 'cancel') {
-        setLoading(false);
+    if (NativeGoogleSignin) {
+      try {
+        NativeGoogleSignin.configure({
+          webClientId: GOOGLE_CLIENT_ID,
+          offlineAccess: false,
+        });
+      } catch (err) {
+        console.warn('[GoogleButton] Configure error:', err);
       }
-    };
+    }
+  }, []);
 
-    handleAuthResponse();
+  useEffect(() => {
+    if (response) {
+      const handleAuthSessionResponse = async () => {
+        if (response.type === 'success') {
+          const idToken =
+            response.params?.id_token || (response as any).authentication?.idToken;
+
+          if (idToken) {
+            try {
+              setLoading(true);
+              const res = await loginWithGoogle(idToken);
+              setLoading(false);
+              if (res.success) {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                if (onSuccess) onSuccess();
+              } else {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                if (onError) onError(res.error || 'Error al autenticar con Google');
+              }
+            } catch (e: any) {
+              setLoading(false);
+              if (onError) onError(e?.message || 'Error en inicio de sesion con Google');
+            }
+          } else {
+            setLoading(false);
+            if (onError) onError('No se recibio la credencial de Google');
+          }
+        } else if (response.type === 'error') {
+          setLoading(false);
+          if (onError) onError(response.error?.message || 'Error al conectar con Google');
+        } else if (response.type === 'dismiss' || response.type === 'cancel') {
+          setLoading(false);
+        }
+      };
+
+      handleAuthSessionResponse();
+    }
   }, [response]);
 
   const handlePress = async () => {
     if (disabled || loading) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    if (NativeGoogleSignin) {
+      try {
+        setLoading(true);
+        await NativeGoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+        const signInResult = await NativeGoogleSignin.signIn();
+        const idToken = signInResult?.data?.idToken || (signInResult as any)?.idToken;
+        if (!idToken) {
+          setLoading(false);
+          if (onError) onError('No se pudo obtener el token de Google');
+          return;
+        }
+        const res = await loginWithGoogle(idToken);
+        setLoading(false);
+        if (res.success) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          if (onSuccess) onSuccess();
+        } else {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+          if (onError) onError(res.error || 'Error al autenticar en el servidor');
+        }
+        return;
+      } catch (error: any) {
+        setLoading(false);
+        if (nativeStatusCodes && error.code === nativeStatusCodes.SIGN_IN_CANCELLED) return;
+        console.warn('[GoogleButton] Error nativo, usando navegador:', error);
+      }
+    }
 
     try {
       setLoading(true);
@@ -114,7 +170,6 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
         <ActivityIndicator size="small" color={theme.primary} />
       ) : (
         <View style={styles.content}>
-          {/* Official Google G emblem colors representation */}
           <View style={styles.iconWrapper}>
             <Ionicons name="logo-google" size={18} color="#ea4335" />
           </View>
@@ -135,7 +190,7 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
 const styles = StyleSheet.create({
   button: {
     height: 50,
-    borderRadius: 25, // Sleek pill shape matching web
+    borderRadius: 25,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',

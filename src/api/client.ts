@@ -1,5 +1,5 @@
 import axios from "axios";
-import * as SecureStore from "expo-secure-store";
+import { appStorage } from "@/utils/storage";
 import { API_BASE_URL, TOKEN_KEY } from "@/constants/Config";
 
 export const apiClient = axios.create({
@@ -15,7 +15,7 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use(
   async (config) => {
     try {
-      const token = await SecureStore.getItemAsync(TOKEN_KEY);
+      const token = await appStorage.getItem(TOKEN_KEY);
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -34,7 +34,7 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       console.warn("[API Client] Sesión caducada o no autorizada (401)");
       try {
-        await SecureStore.deleteItemAsync(TOKEN_KEY);
+        await appStorage.deleteItem(TOKEN_KEY);
       } catch (_) {}
     }
     return Promise.reject(error);

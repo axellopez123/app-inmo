@@ -26,7 +26,7 @@ export default function SignupScreen() {
   const scheme = useColorScheme() ?? 'dark';
   const theme = Colors[scheme];
   const router = useRouter();
-  const { register } = useAuth();
+  const { register, user, isLoading } = useAuth();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 900;
 
@@ -40,6 +40,12 @@ export default function SignupScreen() {
   const [acceptedTerms, setAcceptedTerms] = useState(true);
 
   const [loading, setLoading] = useState(false);
+  // Si ya tiene sesión iniciada, redirigir al catálogo de propiedades inmediatamente
+  React.useEffect(() => {
+    if (!isLoading && user) {
+      router.replace('/(tabs)' as any);
+    }
+  }, [user, isLoading]);
   const [backendError, setBackendError] = useState('');
 
   // Legal Modal
@@ -100,8 +106,7 @@ export default function SignupScreen() {
 
     if (res.success) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      if (router.canGoBack()) router.back();
-      else router.replace('/' as any);
+      router.replace('/(tabs)' as any);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setBackendError(res.error || 'No se pudo crear la cuenta');
@@ -162,8 +167,7 @@ export default function SignupScreen() {
               <GoogleButton
                 text="Registrarse con Google"
                 onSuccess={() => {
-                  if (router.canGoBack()) router.back();
-                  else router.replace('/' as any);
+                  router.replace('/(tabs)' as any);
                 }}
                 onError={(err) => setBackendError(err)}
               />

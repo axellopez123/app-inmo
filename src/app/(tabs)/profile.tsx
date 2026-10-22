@@ -68,6 +68,7 @@ export default function ProfileScreen() {
 
       if (res.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.replace('/(tabs)' as any);
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setBackendError(res.error || 'Correo o contraseña incorrectos');
@@ -113,6 +114,7 @@ export default function ProfileScreen() {
 
       if (res.success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.replace('/(tabs)' as any);
       } else {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setBackendError(res.error || 'No se pudo crear la cuenta');
@@ -120,15 +122,17 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert('Cerrar Sesión', '¿Deseas salir de tu cuenta?', [
+    const handleLogout = () => {
+    Alert.alert('Cerrar Sesión', '¿Estás seguro de que deseas salir de tu cuenta en Lomar?', [
       { text: 'Cancelar', style: 'cancel' },
       {
-        text: 'Salir',
+        text: 'Cerrar Sesión',
         style: 'destructive',
         onPress: async () => {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           await logout();
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          router.replace('/(tabs)' as any);
         },
       },
     ]);
@@ -354,6 +358,7 @@ export default function ProfileScreen() {
             {/* Google Button */}
             <GoogleButton
               text={authMode === 'login' ? 'Continuar con Google' : 'Registrarse con Google'}
+              onSuccess={() => router.replace('/(tabs)' as any)}
               onError={(err) => setBackendError(err)}
             />
 

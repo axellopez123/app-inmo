@@ -27,7 +27,7 @@ export default function LoginScreen() {
   const scheme = useColorScheme() ?? 'dark';
   const theme = Colors[scheme];
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, user, isLoading } = useAuth();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 900;
 
@@ -35,6 +35,12 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  // Si ya tiene sesión iniciada, redirigir al catálogo de propiedades inmediatamente
+  React.useEffect(() => {
+    if (!isLoading && user) {
+      router.replace('/(tabs)' as any);
+    }
+  }, [user, isLoading]);
   const [backendError, setBackendError] = useState('');
 
   // Legal Modal State
@@ -62,11 +68,7 @@ export default function LoginScreen() {
 
     if (res.success) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace('/' as any);
-      }
+      router.replace('/(tabs)' as any);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setBackendError(res.error || 'Correo o contraseña incorrectos.');
@@ -131,8 +133,7 @@ export default function LoginScreen() {
               <GoogleButton
                 text="Continuar con Google"
                 onSuccess={() => {
-                  if (router.canGoBack()) router.back();
-                  else router.replace('/' as any);
+                  router.replace('/(tabs)' as any);
                 }}
                 onError={(err) => setBackendError(err)}
               />

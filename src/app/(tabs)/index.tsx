@@ -73,19 +73,43 @@ export default function ExploreScreen() {
           <Text style={[styles.brandSubtitle, { color: theme.primary }]}>BIENES RAÍCES</Text>
         </View>
 
-        {isVendor ? (
-          <View style={styles.vendorBadge}>
-            <Ionicons name="shield-checkmark" size={13} color="#a855f7" />
-            <Text style={styles.vendorBadgeText}>MODO ASESOR</Text>
-          </View>
-        ) : (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+          {isVendor && (
+            <View style={styles.vendorBadge}>
+              <Ionicons name="shield-checkmark" size={13} color="#a855f7" />
+              <Text style={styles.vendorBadgeText}>MODO ASESOR</Text>
+            </View>
+          )}
+
           <TouchableOpacity
+            activeOpacity={0.8}
             style={[styles.userButton, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
             onPress={() => router.push('/(tabs)/profile')}
           >
-            <Ionicons name="person" size={16} color={theme.text} />
+            {user ? (
+              <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ fontSize: 13, fontWeight: '900', color: theme.primary }}>
+                  {user.full_name?.charAt(0).toUpperCase() || 'U'}
+                </Text>
+                <View
+                  style={{
+                    position: 'absolute',
+                    bottom: -2,
+                    right: -2,
+                    width: 7,
+                    height: 7,
+                    borderRadius: 4,
+                    backgroundColor: '#10b981',
+                    borderWidth: 1.5,
+                    borderColor: theme.background,
+                  }}
+                />
+              </View>
+            ) : (
+              <Ionicons name="person-outline" size={16} color={theme.textMuted} />
+            )}
           </TouchableOpacity>
-        )}
+        </View>
       </View>
 
       {/* Buscador Rápido */}
