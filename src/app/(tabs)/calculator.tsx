@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import {
   View,
   Text,
@@ -16,7 +17,14 @@ export default function CalculatorScreen() {
   const scheme = useColorScheme() ?? 'dark';
   const theme = Colors[scheme];
 
-  const [price, setPrice] = useState('2500000');
+  const params = useLocalSearchParams<{ price?: string }>();
+  const [price, setPrice] = useState(params.price || '2500000');
+
+  useEffect(() => {
+    if (params.price) {
+      setPrice(params.price);
+    }
+  }, [params.price]);
   const [downpaymentPercent, setDownpaymentPercent] = useState(10);
   const [selectedScenario, setSelectedScenario] = useState<'infonavit' | 'bancario1' | 'bancario2'>('bancario1');
 

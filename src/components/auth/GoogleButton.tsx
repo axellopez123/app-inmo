@@ -17,11 +17,15 @@ import { useAuth } from '@/context/AuthContext';
 
 WebBrowser.maybeCompleteAuthSession();
 
-const GOOGLE_CLIENT_ID =
+const GOOGLE_WEB_CLIENT_ID =
   process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ||
-  '669566577029-8sgd2if3rdbc2udj7v42nrch6i5l6p6p.apps.googleusercontent.com';
+  '669566577029-t5tp4g1b931cd0je3rq48tjt957jaa0f.apps.googleusercontent.com';
 
-// Probar de forma segura si el modulo nativo esta enlazado en el binario
+const GOOGLE_ANDROID_CLIENT_ID =
+  process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ||
+  '669566577029-15ob3hl8ehtre8fii138gasvoq8jht5u.apps.googleusercontent.com';
+
+// Probar de forma segura si el modulo nativo esta disponible en el binario
 let NativeGoogleSignin: any = null;
 let nativeStatusCodes: any = null;
 try {
@@ -50,12 +54,18 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
   const { loginWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  // Proporcionamos todos los client IDs para evitar invariantClientId
+  // Proporcionamos el client ID de Android y el de Web para autorizacion correcta
+  // Para el navegador siempre se debe usar el Web Client ID
+  // (los Client IDs de Android causan redirect_uri_mismatch en el navegador)
+  // Para evitar 'custom scheme uris are not allowed for web client type',
+  // en navegadores Google exige un URI https:// (nunca inmobiliaria:// o com.inmobiliaria.app:/).
+  // La URL oficial del proxy de Expo es https://auth.expo.io/@anonymous/inmobiliaria
+  const proxyRedirectUri = 'https://auth.expo.io/@anonymous/inmobiliaria';
+
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: GOOGLE_CLIENT_ID,
-    webClientId: GOOGLE_CLIENT_ID,
-    androidClientId: GOOGLE_CLIENT_ID,
-    iosClientId: GOOGLE_CLIENT_ID,
+    clientId: GOOGLE_WEB_CLIENT_ID,
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    redirectUri: proxyRedirectUri,
     selectAccount: true,
   });
 
@@ -63,7 +73,7 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
     if (NativeGoogleSignin) {
       try {
         NativeGoogleSignin.configure({
-          webClientId: GOOGLE_CLIENT_ID,
+          webClientId: GOOGLE_WEB_CLIENT_ID,
           offlineAccess: false,
         });
       } catch (err) {
@@ -112,6 +122,8 @@ export const GoogleButton: React.FC<GoogleButtonProps> = ({
   }, [response]);
 
   const handlePress = async () => {
+    console.log('[Google Auth] Enviando a Google redirectUri:', request?.redirectUri);
+    console.log('[Google Auth] Usando ClientId:', GOOGLE_WEB_CLIENT_ID);
     if (disabled || loading) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 

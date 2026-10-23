@@ -18,7 +18,7 @@ WebBrowser.maybeCompleteAuthSession();
 
 const GOOGLE_WEB_CLIENT_ID =
   process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ||
-  '669566577029-8sgd2if3rdbc2udj7v42nrch6i5l6p6p.apps.googleusercontent.com';
+  '669566577029-t5tp4g1b931cd0je3rq48tjt957jaa0f.apps.googleusercontent.com';
 
 interface GoogleButtonProps {
   text?: string;

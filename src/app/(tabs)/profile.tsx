@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,6 @@ import {
   Alert,
   ScrollView,
   useWindowDimensions,
-  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,113 +15,17 @@ import * as Haptics from 'expo-haptics';
 import * as WebBrowser from 'expo-web-browser';
 import { Colors } from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
-import { Button } from '@/components/ui/Button';
 import { useRouter } from 'expo-router';
-import { GoogleButton } from '@/components/auth/GoogleButton';
-import { LegalModal } from '@/components/legal/LegalModal';
 
 export default function ProfileScreen() {
   const scheme = useColorScheme() ?? 'dark';
   const theme = Colors[scheme];
-  const { user, isVendor, logout, login, register } = useAuth();
+  const { user, isVendor, logout } = useAuth();
   const router = useRouter();
   const { width } = useWindowDimensions();
   const isDesktop = width >= 768;
 
-  // State for unauthenticated mode
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [acceptedTerms, setAcceptedTerms] = useState(true);
-  const [authLoading, setAuthLoading] = useState(false);
-  const [backendError, setBackendError] = useState('');
-
-  // Legal Modal
-  const [legalModalVisible, setLegalModalVisible] = useState(false);
-  const [legalInitialTab, setLegalInitialTab] = useState<'terms' | 'privacy'>('terms');
-
-  const openLegalModal = (tab: 'terms' | 'privacy') => {
-    Haptics.selectionAsync();
-    setLegalInitialTab(tab);
-    setLegalModalVisible(true);
-  };
-
-  const handleAuthSubmit = async () => {
-    setBackendError('');
-
-    if (authMode === 'login') {
-      if (!email.trim() || !password) {
-        setBackendError('Ingresa tu correo y contraseña');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        return;
-      }
-
-      setAuthLoading(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const res = await login(email.trim().toLowerCase(), password);
-      setAuthLoading(false);
-
-      if (res.success) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        router.replace('/(tabs)' as any);
-      } else {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        setBackendError(res.error || 'Correo o contraseña incorrectos');
-      }
-    } else {
-      // Signup mode
-      if (!fullName.trim() || fullName.trim().length < 3) {
-        setBackendError('El nombre debe tener al menos 3 caracteres');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        return;
-      }
-      const emailRegex = /^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+.[a-zA-Z0-9-.]+$/;
-      if (!email.trim() || !emailRegex.test(email.trim())) {
-        setBackendError('Ingresa un correo electrónico válido');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        return;
-      }
-      if (!password || password.length < 6) {
-        setBackendError('La contraseña debe tener al menos 6 caracteres');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        return;
-      }
-      if (password !== confirmPassword) {
-        setBackendError('Las contraseñas no coinciden');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        return;
-      }
-      if (!acceptedTerms) {
-        setBackendError('Debes aceptar las Condiciones del Servicio y Privacidad');
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        return;
-      }
-
-      setAuthLoading(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      const res = await register({
-        full_name: fullName.trim(),
-        email: email.trim().toLowerCase(),
-        phone: phone.trim() || null,
-        password,
-      });
-      setAuthLoading(false);
-
-      if (res.success) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        router.replace('/(tabs)' as any);
-      } else {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        setBackendError(res.error || 'No se pudo crear la cuenta');
-      }
-    }
-  };
-
-    const handleLogout = () => {
+  const handleLogout = () => {
     Alert.alert('Cerrar Sesión', '¿Estás seguro de que deseas salir de tu cuenta en Lomar?', [
       { text: 'Cancelar', style: 'cancel' },
       {
@@ -149,17 +52,17 @@ export default function ProfileScreen() {
       >
         {user ? (
           /* ========================================================= */
-          /* LOGGED IN USER PROFILE VIEW                               */
+          /* VISTA CON SESION INICIADA (DASHBOARD DEL USUARIO)         */
           /* ========================================================= */
           <View style={styles.content}>
             <View style={styles.header}>
-              <Text style={[styles.title, { color: theme.text }]}>Mi Cuenta</Text>
+              <Text style={[styles.title, { color: theme.text }]}>Mi Perfil</Text>
               <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
-                Gestiona tus datos personales y actividad en Lomar
+                Gestiona tu cuenta, inmuebles y preferencias
               </Text>
             </View>
 
-            {/* User Card */}
+            {/* Tarjeta de Usuario */}
             <View
               style={[
                 styles.userCard,
@@ -171,9 +74,9 @@ export default function ProfileScreen() {
                   {user.full_name?.charAt(0).toUpperCase() || 'U'}
                 </Text>
               </View>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, gap: 2 }}>
                 <Text style={[styles.userName, { color: theme.text }]}>
-                  {user.full_name}
+                  {user.full_name || 'Usuario Lomar'}
                 </Text>
                 <Text style={[styles.userEmail, { color: theme.textSecondary }]}>
                   {user.email}
@@ -195,381 +98,192 @@ export default function ProfileScreen() {
                       color: isVendor ? '#a855f7' : theme.primary,
                     }}
                   >
-                    ROL: {user.role?.toUpperCase()}
+                    {isVendor ? '🛡️ ASESOR CERTIFICADO' : '👤 CLIENTE VERIFICADO'}
                   </Text>
                 </View>
               </View>
             </View>
 
-            {/* Menu Options */}
-            <View
-              style={[
-                styles.menuCard,
-                { backgroundColor: theme.card, borderColor: theme.cardBorder },
-              ]}
-            >
-              <TouchableOpacity
-                style={styles.menuRow}
-                onPress={() => router.push('/(tabs)/favorites' as any)}
-              >
-                <Ionicons name="heart-outline" size={20} color="#f43f5e" />
-                <Text style={[styles.menuText, { color: theme.text }]}>
-                  Mis Propiedades Favoritas
-                </Text>
-                <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.menuRow}
-                onPress={() => router.push('/(tabs)/calculator' as any)}
-              >
-                <Ionicons name="calculator-outline" size={20} color="#0284c7" />
-                <Text style={[styles.menuText, { color: theme.text }]}>
-                  Simulador de Crédito Hipotecario
-                </Text>
-                <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
-              </TouchableOpacity>
+            {/* Accesos Rapidos del Usuario */}
+            <View style={styles.menuSection}>
+              <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                GESTIÓN INMOBILIARIA
+              </Text>
 
               {isVendor && (
-                <>
-                  <TouchableOpacity
-                    style={styles.menuRow}
-                    onPress={() => router.push('/property/create' as any)}
-                  >
-                    <Ionicons name="add-circle" size={20} color={theme.primary} />
-                    <Text
-                      style={[
-                        styles.menuText,
-                        { color: theme.primary, fontWeight: '800' },
-                      ]}
-                    >
-                      Publicar Nueva Propiedad
-                    </Text>
-                    <Ionicons name="chevron-forward" size={16} color={theme.primary} />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.menuRow}
-                    onPress={() =>
-                      WebBrowser.openBrowserAsync('https://inmobiliaria.arwax.pro/clients')
-                    }
-                  >
-                    <Ionicons name="people-outline" size={20} color="#a855f7" />
-                    <Text style={[styles.menuText, { color: theme.text }]}>
-                      Gestión de Clientes / CRM
-                    </Text>
-                    <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
-                  </TouchableOpacity>
-                </>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  style={[styles.menuItem, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
+                  onPress={() => router.push('/property/create' as any)}
+                >
+                  <View style={[styles.menuIconBox, { backgroundColor: '#ffedd5' }]}>
+                    <Ionicons name="add-circle-outline" size={20} color="#ea580c" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.menuItemTitle, { color: theme.text }]}>Publicar Nuevo Inmueble</Text>
+                    <Text style={[styles.menuItemSub, { color: theme.textSecondary }]}>Sube fotos, precio y detalles</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
+                </TouchableOpacity>
               )}
 
               <TouchableOpacity
-                style={styles.menuRow}
-                onPress={() => openLegalModal('terms')}
+                activeOpacity={0.7}
+                style={[styles.menuItem, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
+                onPress={() => router.push('/(tabs)/favorites' as any)}
               >
-                <Ionicons
-                  name="shield-checkmark-outline"
-                  size={20}
-                  color={theme.textSecondary}
-                />
-                <Text style={[styles.menuText, { color: theme.text }]}>
-                  Términos y Condiciones / Privacidad
-                </Text>
-                <Ionicons name="chevron-forward" size={16} color={theme.textMuted} />
+                <View style={[styles.menuIconBox, { backgroundColor: '#ffe4e6' }]}>
+                  <Ionicons name="heart-outline" size={20} color="#e11d48" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.menuItemTitle, { color: theme.text }]}>Mis Favoritos Guardados</Text>
+                  <Text style={[styles.menuItemSub, { color: theme.textSecondary }]}>Inmuebles que te interesan</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={[styles.menuItem, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
+                onPress={() => router.push('/(tabs)/calculator' as any)}
+              >
+                <View style={[styles.menuIconBox, { backgroundColor: '#fef3c7' }]}>
+                  <Ionicons name="calculator-outline" size={20} color="#d97706" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.menuItemTitle, { color: theme.text }]}>Calculadora de Crédito</Text>
+                  <Text style={[styles.menuItemSub, { color: theme.textSecondary }]}>Infonavit, BBVA, HSBC</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={[styles.menuItem, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
+                onPress={() => router.push('/(tabs)/radar' as any)}
+              >
+                <View style={[styles.menuIconBox, { backgroundColor: '#e0f2fe' }]}>
+                  <Ionicons name="compass-outline" size={20} color="#0284c7" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.menuItemTitle, { color: theme.text }]}>Radar Inmobiliario</Text>
+                  <Text style={[styles.menuItemSub, { color: theme.textSecondary }]}>Oportunidades cerca de ti</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
               </TouchableOpacity>
             </View>
 
-            <Button
-              title="Cerrar Sesión"
-              variant="danger"
-              onPress={handleLogout}
-              style={{ marginTop: 10 }}
-            />
+            {/* Soporte y Cerrar Sesion */}
+            <View style={styles.menuSection}>
+              <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>
+                SOPORTE Y CUENTA
+              </Text>
+
+              <TouchableOpacity
+                activeOpacity={0.7}
+                style={[styles.menuItem, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}
+                onPress={() => WebBrowser.openBrowserAsync('https://inmobiliaria.arwax.pro/terminos-y-condiciones')}
+              >
+                <View style={[styles.menuIconBox, { backgroundColor: '#f1f5f9' }]}>
+                  <Ionicons name="shield-checkmark-outline" size={18} color="#475569" />
+                </View>
+                <Text style={[styles.menuItemTitle, { flex: 1, color: theme.text }]}>Términos y Privacidad</Text>
+                <Ionicons name="chevron-forward" size={18} color={theme.textMuted} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={handleLogout}
+                style={styles.logoutButton}
+              >
+                <Ionicons name="log-out-outline" size={18} color="#ef4444" />
+                <Text style={styles.logoutButtonText}>Cerrar Sesión</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : (
           /* ========================================================= */
-          /* LUXURY AUTHENTICATION CARD (When logged out)              */
+          /* VISTA INVITADO / GUEST (PATRÓN PROFESIONAL TIPO AIRBNB)   */
           /* ========================================================= */
-          <View style={styles.authContainer}>
-            {/* Lomar Brand Header */}
-            <View style={styles.brandBadge}>
-              <View style={styles.brandIcon}>
-                <Ionicons name="business" size={18} color="#ffffff" />
+          <View style={styles.guestContainer}>
+            {/* Emblema Hero */}
+            <View style={styles.guestIconCircle}>
+              <View style={styles.guestIconInner}>
+                <Ionicons name="person" size={36} color="#f97316" />
               </View>
-              <Text style={[styles.brandText, { color: theme.text }]}>Lomar Inmobiliaria</Text>
             </View>
 
-            <View style={styles.authHeader}>
-              <Text style={[styles.authTitle, { color: theme.text }]}>
-                {authMode === 'login' ? 'Bienvenido de nuevo' : 'Crea tu cuenta'}
+            {/* Titulo y Mensaje de Bienvenida */}
+            <Text style={[styles.guestTitle, { color: theme.text }]}>
+              Tu espacio en Lomar
+            </Text>
+            <Text style={[styles.guestSubtitle, { color: theme.textSecondary }]}>
+              Inicia sesión o crea una cuenta para guardar inmuebles favoritos, gestionar tus propiedades y recibir asesoría personalizada.
+            </Text>
+
+            {/* Boton Primario Destacado: INICIAR SESION / REGISTRARSE */}
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                router.push('/(auth)/login' as any);
+              }}
+              style={styles.guestAuthButton}
+            >
+              <Ionicons name="log-in-outline" size={20} color="#ffffff" />
+              <Text style={styles.guestAuthButtonText}>Iniciar Sesión / Registrarse</Text>
+              <Ionicons name="arrow-forward" size={18} color="#ffffff" />
+            </TouchableOpacity>
+
+            {/* Beneficios de tener cuenta */}
+            <View style={[styles.benefitsCard, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
+              <Text style={[styles.benefitsHeader, { color: theme.text }]}>
+                Con tu cuenta puedes:
               </Text>
-              <Text style={[styles.authSub, { color: theme.textSecondary }]}>
-                {authMode === 'login'
-                  ? 'Accede a tus propiedades guardadas y cotizaciones'
-                  : 'Únete a nuestra exclusiva red inmobiliaria'}
+
+              <View style={styles.benefitRow}>
+                <View style={[styles.benefitIconBox, { backgroundColor: '#ffedd5' }]}>
+                  <Ionicons name="business" size={16} color="#ea580c" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.benefitTitle, { color: theme.text }]}>Publicar y gestionar inmuebles</Text>
+                  <Text style={[styles.benefitDesc, { color: theme.textSecondary }]}>Sube casas o terrenos en venta y renta</Text>
+                </View>
+              </View>
+
+              <View style={styles.benefitRow}>
+                <View style={[styles.benefitIconBox, { backgroundColor: '#ffe4e6' }]}>
+                  <Ionicons name="heart" size={16} color="#e11d48" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.benefitTitle, { color: theme.text }]}>Sincronizar tus favoritos</Text>
+                  <Text style={[styles.benefitDesc, { color: theme.textSecondary }]}>Consúltalos en tu celular, tablet o computadora</Text>
+                </View>
+              </View>
+
+              <View style={styles.benefitRow}>
+                <View style={[styles.benefitIconBox, { backgroundColor: '#e0f2fe' }]}>
+                  <Ionicons name="compass" size={16} color="#0284c7" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.benefitTitle, { color: theme.text }]}>Alertas de radar exclusivas</Text>
+                  <Text style={[styles.benefitDesc, { color: theme.textSecondary }]}>Enterate antes que nadie de nuevas oportunidades</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Enlace a terminos */}
+            <TouchableOpacity
+              onPress={() => WebBrowser.openBrowserAsync('https://inmobiliaria.arwax.pro/terminos-y-condiciones')}
+              style={{ marginTop: 24 }}
+            >
+              <Text style={{ fontSize: 12, color: theme.textMuted, textAlign: 'center' }}>
+                Al registrarte aceptas nuestros Términos y Aviso de Privacidad
               </Text>
-            </View>
-
-            {/* Segmented Auth Switcher */}
-            <View style={[styles.segmentedSwitch, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-              <TouchableOpacity
-                style={[
-                  styles.segmentBtn,
-                  authMode === 'login' && [styles.segmentActive, { backgroundColor: theme.primary }],
-                ]}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setAuthMode('login');
-                  setBackendError('');
-                }}
-              >
-                <Text
-                  style={[
-                    styles.segmentText,
-                    { color: authMode === 'login' ? '#ffffff' : theme.textSecondary },
-                  ]}
-                >
-                  Iniciar Sesión
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.segmentBtn,
-                  authMode === 'signup' && [styles.segmentActive, { backgroundColor: theme.primary }],
-                ]}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setAuthMode('signup');
-                  setBackendError('');
-                }}
-              >
-                <Text
-                  style={[
-                    styles.segmentText,
-                    { color: authMode === 'signup' ? '#ffffff' : theme.textSecondary },
-                  ]}
-                >
-                  Registrarse
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Google Button */}
-            <GoogleButton
-              text={authMode === 'login' ? 'Continuar con Google' : 'Registrarse con Google'}
-              onSuccess={() => router.replace('/(tabs)' as any)}
-              onError={(err) => setBackendError(err)}
-            />
-
-            {/* Divider */}
-            <View style={styles.dividerRow}>
-              <View style={[styles.dividerLine, { backgroundColor: theme.cardBorder }]} />
-              <Text style={[styles.dividerText, { color: theme.textMuted }]}>
-                {authMode === 'login' ? 'O CON TU CORREO' : 'O COMPLETA TUS DATOS'}
-              </Text>
-              <View style={[styles.dividerLine, { backgroundColor: theme.cardBorder }]} />
-            </View>
-
-            {/* Error Banner */}
-            {backendError ? (
-              <View style={[styles.errorBanner, { backgroundColor: '#fff1f2', borderColor: '#fecdd3' }]}>
-                <Ionicons name="alert-circle" size={18} color="#e11d48" />
-                <Text style={styles.errorText}>{backendError}</Text>
-              </View>
-            ) : null}
-
-            {/* Form Fields */}
-            <View style={styles.formFields}>
-              {authMode === 'signup' && (
-                <View style={styles.fieldGroup}>
-                  <Text style={[styles.label, { color: theme.text }]}>Nombre completo</Text>
-                  <View style={[styles.inputBox, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-                    <Ionicons name="person-outline" size={18} color={theme.textMuted} />
-                    <TextInput
-                      placeholder="Tu nombre y apellido"
-                      placeholderTextColor={theme.textMuted}
-                      value={fullName}
-                      onChangeText={setFullName}
-                      style={[styles.input, { color: theme.text }]}
-                    />
-                  </View>
-                </View>
-              )}
-
-              <View style={styles.fieldGroup}>
-                <Text style={[styles.label, { color: theme.text }]}>Correo electrónico</Text>
-                <View style={[styles.inputBox, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-                  <Ionicons name="mail-outline" size={18} color={theme.textMuted} />
-                  <TextInput
-                    placeholder="ejemplo@correo.com"
-                    placeholderTextColor={theme.textMuted}
-                    value={email}
-                    onChangeText={setEmail}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    style={[styles.input, { color: theme.text }]}
-                  />
-                </View>
-              </View>
-
-              {authMode === 'signup' && (
-                <View style={styles.fieldGroup}>
-                  <Text style={[styles.label, { color: theme.text }]}>Teléfono (WhatsApp)</Text>
-                  <View style={[styles.inputBox, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-                    <Ionicons name="call-outline" size={18} color={theme.textMuted} />
-                    <TextInput
-                      placeholder="10 dígitos"
-                      placeholderTextColor={theme.textMuted}
-                      value={phone}
-                      onChangeText={setPhone}
-                      keyboardType="phone-pad"
-                      style={[styles.input, { color: theme.text }]}
-                    />
-                  </View>
-                </View>
-              )}
-
-              <View style={styles.fieldGroup}>
-                <View style={styles.labelRow}>
-                  <Text style={[styles.label, { color: theme.text }]}>Contraseña</Text>
-                  {authMode === 'login' && (
-                    <TouchableOpacity
-                      onPress={() =>
-                        WebBrowser.openBrowserAsync('https://inmobiliaria.arwax.pro/forgot-password')
-                      }
-                    >
-                      <Text style={[styles.forgotLink, { color: theme.primary }]}>
-                        ¿Olvidaste tu contraseña?
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                <View style={[styles.inputBox, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-                  <Ionicons name="lock-closed-outline" size={18} color={theme.textMuted} />
-                  <TextInput
-                    placeholder="••••••••"
-                    placeholderTextColor={theme.textMuted}
-                    value={password}
-                    onChangeText={setPassword}
-                    secureTextEntry={!showPassword}
-                    style={[styles.input, { color: theme.text }]}
-                  />
-                  <TouchableOpacity
-                    onPress={() => setShowPassword(!showPassword)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Ionicons
-                      name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                      size={20}
-                      color={theme.textMuted}
-                    />
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {authMode === 'signup' && (
-                <>
-                  <View style={styles.fieldGroup}>
-                    <Text style={[styles.label, { color: theme.text }]}>Confirmar contraseña</Text>
-                    <View style={[styles.inputBox, { backgroundColor: theme.card, borderColor: theme.cardBorder }]}>
-                      <Ionicons name="lock-closed-outline" size={18} color={theme.textMuted} />
-                      <TextInput
-                        placeholder="Repite tu contraseña"
-                        placeholderTextColor={theme.textMuted}
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                        secureTextEntry={!showPassword}
-                        style={[styles.input, { color: theme.text }]}
-                      />
-                    </View>
-                  </View>
-
-                  <TouchableOpacity
-                    style={styles.checkboxRow}
-                    activeOpacity={0.8}
-                    onPress={() => setAcceptedTerms(!acceptedTerms)}
-                  >
-                    <View
-                      style={[
-                        styles.checkbox,
-                        {
-                          borderColor: acceptedTerms ? theme.primary : theme.textMuted,
-                          backgroundColor: acceptedTerms ? theme.primary : 'transparent',
-                        },
-                      ]}
-                    >
-                      {acceptedTerms && <Ionicons name="checkmark" size={14} color="#ffffff" />}
-                    </View>
-                    <Text style={[styles.checkboxLabel, { color: theme.textSecondary }]}>
-                      Acepto las{' '}
-                      <Text
-                        style={[styles.linkHighlight, { color: theme.primary }]}
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          openLegalModal('terms');
-                        }}
-                      >
-                        Condiciones del Servicio
-                      </Text>{' '}
-                      y la{' '}
-                      <Text
-                        style={[styles.linkHighlight, { color: theme.primary }]}
-                        onPress={(e) => {
-                          e.stopPropagation();
-                          openLegalModal('privacy');
-                        }}
-                      >
-                        Política de Privacidad
-                      </Text>
-                      .
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              )}
-
-              {/* Action Button */}
-              <Button
-                title={authMode === 'login' ? 'Iniciar sesión' : 'Crear mi Cuenta'}
-                loading={authLoading}
-                onPress={handleAuthSubmit}
-                style={{ marginTop: 6, height: 50, borderRadius: 16 }}
-              />
-
-              {/* Legal Notice */}
-              <View style={[styles.legalBox, { borderTopColor: theme.cardBorder }]}>
-                <Text style={[styles.legalText, { color: theme.textMuted }]}>
-                  Al interactuar, aceptas nuestras{' '}
-                  <Text style={[styles.linkHighlight, { color: theme.primary }]} onPress={() => openLegalModal('terms')}>
-                    Condiciones del Servicio
-                  </Text>{' '}
-                  y nuestra{' '}
-                  <Text style={[styles.linkHighlight, { color: theme.primary }]} onPress={() => openLegalModal('privacy')}>
-                    Política de Privacidad
-                  </Text>
-                  .
-                </Text>
-              </View>
-
-              <View style={styles.trustBadge}>
-                <Ionicons name="shield-checkmark" size={14} color="#10b981" />
-                <Text style={[styles.trustText, { color: theme.textMuted }]}>
-                  Plataforma Inmobiliaria Segura Lomar © {new Date().getFullYear()}
-                </Text>
-              </View>
-            </View>
+            </TouchableOpacity>
           </View>
         )}
       </ScrollView>
-
-      {/* Modal Legal */}
-      <LegalModal
-        visible={legalModalVisible}
-        initialTab={legalInitialTab}
-        onClose={() => setLegalModalVisible(false)}
-        onAccept={() => setAcceptedTerms(true)}
-      />
     </SafeAreaView>
   );
 }
@@ -579,263 +293,209 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    flexGrow: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
     paddingBottom: 40,
   },
   desktopContainer: {
-    maxWidth: 520,
-    width: '100%',
+    maxWidth: 700,
     alignSelf: 'center',
-    paddingVertical: 32,
-  },
-  header: {
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-  },
-  subtitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    marginTop: 4,
+    width: '100%',
   },
   content: {
-    gap: 16,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    gap: 20,
+  },
+  header: {
+    gap: 4,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: -0.6,
+  },
+  subtitle: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   userCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    padding: 16,
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     backgroundColor: '#f97316',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    color: '#ffffff',
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '900',
+    color: '#ffffff',
   },
   userName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '800',
   },
   userEmail: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: 2,
+    fontSize: 13,
   },
   roleBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
     alignSelf: 'flex-start',
-    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginTop: 4,
   },
-  menuCard: {
-    borderRadius: 20,
-    borderWidth: 1,
-    overflow: 'hidden',
+  menuSection: {
+    gap: 10,
   },
-  menuRow: {
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginLeft: 4,
+  },
+  menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    gap: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(255,255,255,0.08)',
-  },
-  menuText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  authContainer: {
-    width: '100%',
-    maxWidth: 460,
-    alignSelf: 'center',
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
     gap: 14,
   },
-  brandBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    alignSelf: 'center',
-    marginBottom: 6,
-  },
-  brandIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: '#f97316',
+  menuIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  brandText: {
-    fontSize: 18,
-    fontWeight: '900',
-    letterSpacing: -0.5,
+  menuItemTitle: {
+    fontSize: 14,
+    fontWeight: '700',
   },
-  authHeader: {
-    alignItems: 'center',
-    textAlign: 'center',
-    marginBottom: 6,
+  menuItemSub: {
+    fontSize: 12,
+    marginTop: 1,
   },
-  authTitle: {
-    fontSize: 24,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-  },
-  authSub: {
-    fontSize: 13,
-    fontWeight: '500',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  segmentedSwitch: {
+  logoutButton: {
     flexDirection: 'row',
-    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    gap: 8,
+    marginTop: 8,
+  },
+  logoutButtonText: {
+    color: '#ef4444',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+
+  // Estilos Vista Invitado
+  guestContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 36,
+    alignItems: 'center',
+  },
+  guestIconCircle: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: '#ffedd5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    borderWidth: 2,
+    borderColor: '#fed7aa',
+  },
+  guestIconInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#fff7ed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestTitle: {
+    fontSize: 26,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  guestSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 28,
+  },
+  guestAuthButton: {
+    width: '100%',
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#f97316',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+    marginBottom: 28,
+  },
+  guestAuthButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  benefitsCard: {
+    width: '100%',
+    borderRadius: 24,
     borderWidth: 1,
-    padding: 4,
+    padding: 20,
+    gap: 16,
+  },
+  benefitsHeader: {
+    fontSize: 14,
+    fontWeight: '800',
     marginBottom: 4,
   },
-  segmentBtn: {
-    flex: 1,
-    paddingVertical: 10,
+  benefitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  benefitIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 10,
   },
-  segmentActive: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  segmentText: {
+  benefitTitle: {
     fontSize: 13,
-    fontWeight: '800',
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 10,
-    gap: 12,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-  },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-  },
-  errorText: {
-    flex: 1,
-    fontSize: 12,
     fontWeight: '700',
-    color: '#e11d48',
   },
-  formFields: {
-    gap: 12,
-  },
-  fieldGroup: {
-    gap: 6,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  label: {
+  benefitDesc: {
     fontSize: 12,
-    fontWeight: '800',
-  },
-  forgotLink: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-  inputBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    height: 50,
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-  },
-  input: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  checkboxRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    marginTop: 4,
-    paddingVertical: 4,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
-    borderWidth: 1.8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  checkboxLabel: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '500',
-  },
-  linkHighlight: {
-    fontWeight: '800',
-    textDecorationLine: 'underline',
-  },
-  legalBox: {
-    borderTopWidth: 1,
-    paddingTop: 12,
-    marginTop: 6,
-  },
-  legalText: {
-    fontSize: 11,
-    lineHeight: 16,
-    textAlign: 'center',
-    fontWeight: '500',
-  },
-  trustBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 4,
-  },
-  trustText: {
-    fontSize: 10,
-    fontWeight: '700',
+    marginTop: 1,
   },
 });
